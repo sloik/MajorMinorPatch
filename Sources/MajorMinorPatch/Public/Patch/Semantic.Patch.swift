@@ -23,15 +23,15 @@ extension Semantic {
 
 // MARK: - Nice API
 
-extension Semantic.Patch {
+public extension Semantic.Patch {
 
-    static public var one: Semantic.Patch { 1 }
+    static var one: Semantic.Patch { 1 }
 
-    static public var max: Semantic.Patch {
+    static var max: Semantic.Patch {
         .init(integerLiteral: .max)
     }
 
-    static public var min: Semantic.Patch {
+    static var min: Semantic.Patch {
         .init(integerLiteral: .min)
     }
 
@@ -50,7 +50,7 @@ extension Semantic.Patch {
 
 // MARK: - Incrementation Decrementation
 
-extension Semantic.Patch {
+public extension Semantic.Patch {
     /// Returns incremented version of `Patch`. Is self is at max value than returns copy.
     var incremented: Semantic.Patch {
         isMax ? self : self + .one

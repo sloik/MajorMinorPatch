@@ -23,15 +23,15 @@ extension Semantic {
 
 // MARK: - Common
 
-extension Semantic.Minor {
+public extension Semantic.Minor {
 
-    static public var one: Semantic.Minor { 1 }
+    static var one: Semantic.Minor { 1 }
 
-    static public var max: Semantic.Minor {
+    static var max: Semantic.Minor {
         .init(integerLiteral: .max)
     }
 
-    static public var min: Semantic.Minor {
+    static var min: Semantic.Minor {
         .init(integerLiteral: .min)
     }
 
@@ -50,7 +50,7 @@ extension Semantic.Minor {
 
 // MARK: - Incrementation Decrementation
 
-extension Semantic.Minor {
+public extension Semantic.Minor {
     /// Returns incremented version of `Minor`. Is self is at max value than returns copy.
     var incremented: Semantic.Minor {
         isMax ? self : self + .one

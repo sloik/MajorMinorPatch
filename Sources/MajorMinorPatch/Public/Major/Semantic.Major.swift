@@ -23,15 +23,15 @@ extension Semantic {
 
 // MARK: - Nicer API
 
-extension Semantic.Major {
+public extension Semantic.Major {
 
-    static public var one: Semantic.Major { 1 }
+    static var one: Semantic.Major { 1 }
 
-    static public var max: Semantic.Major {
+    static var max: Semantic.Major {
         .init(integerLiteral: .max)
     }
 
-    static public var min: Semantic.Major {
+    static var min: Semantic.Major {
         .init(integerLiteral: .min)
     }
 
