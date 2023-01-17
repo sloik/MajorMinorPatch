@@ -50,7 +50,7 @@ public extension Semantic.Major {
 
 // MARK: - Incrementation Decrementation
 
-extension Semantic.Major {
+public extension Semantic.Major {
     /// Returns incremented version of `Major`. Is self is at max value than returns copy.
     var incremented: Semantic.Major {
         isMax ? self : self + .one
