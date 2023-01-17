@@ -5,9 +5,9 @@ extension Semantic {
 
     public struct Version {
 
-        let major: Major
-        let minor: Minor
-        let patch: Patch
+        public let major: Major
+        public let minor: Minor
+        public let patch: Patch
 
         public init(
             major: Semantic.Major,
