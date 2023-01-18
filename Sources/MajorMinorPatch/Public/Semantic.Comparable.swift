@@ -14,7 +14,13 @@ extension Semantic: Comparable {
         case ( .vb, .vb ):
             return lhs.version == rhs.version
 
-        case ( .vib, .vib):
+        case ( .vib, .vib ):
+            return lhs.version == rhs.version && lhs.identifiers! == rhs.identifiers!
+
+        case ( .vb, .v ):
+            return lhs.version == rhs.version
+
+        case ( .vib, .vi):
             return lhs.version == rhs.version && lhs.identifiers! == rhs.identifiers!
 
         default:

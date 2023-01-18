@@ -113,6 +113,45 @@ final class SemanticVersioningSpecificationTests: XCTestCase {
         XCTAssertTrue(v1_0_0_rc_1         < ver_1_0_0)
     }
 
+    func test_random_comparisons() {
+
+        XCTAssertTrue(
+            Semantic("1.0.0-beta.11")! < Semantic("1.0.0-beta.11.1")!
+        )
+
+        XCTAssertTrue(
+            Semantic("1.0.0-beta.2")! < Semantic("1.0.0-beta.2.0")!
+        )
+
+        XCTAssertTrue(
+            Semantic("1.0.0-alpha+001")! == Semantic("1.0.0-alpha+001")!
+        )
+        XCTAssertTrue(
+            Semantic("1.0.0-alpha+001")! == Semantic("1.0.0-alpha+002")!
+        )
+        XCTAssertTrue(
+            Semantic("1.0.0+20130313144700")! == Semantic("1.0.0+20130313144700")!
+        )
+        XCTAssertTrue(
+            Semantic("1.0.0+20130313144700")! == Semantic("1.0.0")!
+        )
+        XCTAssertTrue(
+            Semantic("1.0.0-beta+exp.sha.5114f85")! == Semantic("1.0.0-beta+exp.sha.5114f85")!
+        )
+        XCTAssertTrue(
+            Semantic("1.0.0-beta+exp.sha.5114f85")! == Semantic("1.0.0-beta+exp.sha")!
+        )
+        XCTAssertTrue(
+            Semantic("1.0.0-beta+exp.sha.5114f85")! == Semantic("1.0.0-beta")!
+        )
+        XCTAssertTrue(
+            Semantic("1.0.0-beta.2")! == Semantic("1.0.0-beta.2+sha")!
+        )
+        XCTAssertTrue(
+            Semantic("1.0.0-beta.11.1")! < Semantic("1.0.0")!
+        )
+    }
+
     /// https://semver.org/#spec-item-10
     ///
     /// Build metadata MUST be ignored when determining version precedence.
