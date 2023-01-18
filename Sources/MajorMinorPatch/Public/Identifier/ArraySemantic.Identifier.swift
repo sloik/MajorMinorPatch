@@ -8,7 +8,7 @@ extension [Semantic.Identifier]: Comparable {
         let lefts = lhs.map(\.value).joined(separator: ".")
         let rights = rhs.map(\.value).joined(separator: ".")
 
-        return lefts < rights
+        return lefts.compare(rights, options: .numeric) == .orderedAscending
     }
 
 }
