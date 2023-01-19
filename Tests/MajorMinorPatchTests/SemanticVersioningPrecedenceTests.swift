@@ -96,21 +96,14 @@ final class SemanticVersioningSpecificationTests: XCTestCase {
 
     /// 1.0.0-alpha < 1.0.0-alpha.1 < 1.0.0-alpha.beta < 1.0.0-beta < 1.0.0-beta.2 < 1.0.0-beta.11 < 1.0.0-rc.1 < 1.0.0.
     func test_vi_vi_comparison2() {
-        let v1_0_0_alpha        = Semantic("1.0.0-alpha")!
-        let v1_0_0_alpha_1      = Semantic("1.0.0-alpha.1")!
-        let v1_0_0_alpha_beta   = Semantic("1.0.0-alpha.beta")!
-        let v1_0_0_beta         = Semantic("1.0.0-beta")!
-        let v1_0_0_beta_2       = Semantic("1.0.0-beta.2")!
-        let v1_0_0_beta_11      = Semantic("1.0.0-beta.11")!
-        let v1_0_0_rc_1         = Semantic("1.0.0-rc.1")!
-
-        XCTAssertTrue(v1_0_0_alpha        < v1_0_0_alpha_1)
-        XCTAssertTrue(v1_0_0_alpha_1      < v1_0_0_alpha_beta)
-        XCTAssertTrue(v1_0_0_alpha_beta   < v1_0_0_beta)
-        XCTAssertTrue(v1_0_0_beta         < v1_0_0_beta_2)
-        XCTAssertTrue(v1_0_0_beta_2       < v1_0_0_beta_11)
-        XCTAssertTrue(v1_0_0_beta_11      < v1_0_0_rc_1)
-        XCTAssertTrue(v1_0_0_rc_1         < ver_1_0_0)
+        XCTAssertTrue(Semantic("1.0.0-alpha")!        < Semantic("1.0.0-alpha.1")!      )
+        XCTAssertTrue(Semantic("1.0.0-alpha.1")!      < Semantic("1.0.0-alpha.beta")!   )
+        XCTAssertTrue(Semantic("1.0.0-alpha.1")!      < Semantic("1.0.0-alpha.alpha")!  )
+        XCTAssertTrue(Semantic("1.0.0-alpha.beta")!   < Semantic("1.0.0-beta")!         )
+        XCTAssertTrue(Semantic("1.0.0-beta")!         < Semantic("1.0.0-beta.2")!       )
+        XCTAssertTrue(Semantic("1.0.0-beta.2")!       < Semantic("1.0.0-beta.11")!      )
+        XCTAssertTrue(Semantic("1.0.0-beta.11")!      < Semantic("1.0.0-rc.1")!         )
+        XCTAssertTrue(Semantic("1.0.0-rc.1")!         < ver_1_0_0                       )
     }
 
     func test_random_comparisons() {
