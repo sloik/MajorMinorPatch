@@ -152,6 +152,17 @@ final class SemanticVersioningSpecificationTests: XCTestCase {
         )
     }
 
+    /// https://semver.org/#spec-item-11
+    /// 11. Precedence refers to how versions are compared to each other when ordered.
+    /// When major, minor, and patch are equal, a pre-release version has lower
+    /// precedence than a normal version:
+    /// Example: 1.0.0-alpha < 1.0.0.
+    func test_precedense_11_3() {
+        XCTAssertTrue(
+            Semantic("1.0.0-alpha")! < Semantic("1.0.0")!
+        )
+    }
+
     /// https://semver.org/#spec-item-10
     ///
     /// Build metadata MUST be ignored when determining version precedence.

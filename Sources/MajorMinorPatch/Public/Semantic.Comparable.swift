@@ -20,8 +20,11 @@ extension Semantic: Comparable {
         case ( .vb, .v ):
             return lhs.version == rhs.version
 
-        case ( .vib, .vi):
+        case ( .vib, .vi ):
             return lhs.version == rhs.version && lhs.identifiers! == rhs.identifiers!
+
+        case ( .vi, .vib ):
+            return lhs.version == rhs.version  && lhs.identifiers! == rhs.identifiers!
 
         default:
             return false
