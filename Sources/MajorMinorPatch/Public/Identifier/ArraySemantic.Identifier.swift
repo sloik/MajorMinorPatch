@@ -20,6 +20,10 @@ import Foundation
 
 extension [Semantic.Identifier]: Comparable {
 
+    public static func == (lhs: [Element], rhs: [Element]) -> Bool {
+        lhs.count == rhs.count && zip(lhs, rhs).allSatisfy( == )
+    }
+
     public static func < (lhs: [Element], rhs: [Element]) -> Bool {
 
         let lefts = lhs.map(\.value).joined(separator: ".")
