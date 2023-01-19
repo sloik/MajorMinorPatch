@@ -6,12 +6,23 @@ final class SemanticIdentifierComparableTests: XCTestCase {
     // use this test to focus on one case and if green then move it to snapshot.
     func test_wip() {
         XCTAssertTrue(
-            Semantic.Identifier(string: "Alpha")! < Semantic.Identifier(string: "alpha")!
+            Semantic.Identifier(string: "a-a-a")! < Semantic.Identifier(string: "-")!
         )
     }
 
+
+
     /// Examples of true cases.
     func test_snapshot() {
+        XCTAssertTrue(
+            Semantic.Identifier(string: "a-a-a")! < Semantic.Identifier(string: "b")!
+        )
+        XCTAssertTrue(
+            Semantic.Identifier(string: "a-a-a")! < Semantic.Identifier(string: "a-b")!
+        )
+        XCTAssertTrue(
+            Semantic.Identifier(string: "a-a")! < Semantic.Identifier(string: "a-b")!
+        )
         XCTAssertTrue(
             Semantic.Identifier(string: "ALpha")! < Semantic.Identifier(string: "alpha")!
         )
