@@ -150,6 +150,9 @@ final class SemanticVersioningSpecificationTests: XCTestCase {
         XCTAssertTrue(
             Semantic("1.0.0-beta.11.1")! < Semantic("1.0.0")!
         )
+        XCTAssertFalse(
+            Semantic("1.0.0-beta.11.1")! > Semantic("1.0.0")!
+        )
     }
 
     /// https://semver.org/#spec-item-11
