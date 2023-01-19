@@ -20,16 +20,29 @@ import Foundation
 
 extension [Semantic.Identifier]: Comparable {
 
-    public static func == (lhs: [Element], rhs: [Element]) -> Bool {
+    public static func == (lhs: [Semantic.Identifier], rhs: [Semantic.Identifier]) -> Bool {
         lhs.count == rhs.count && zip(lhs, rhs).allSatisfy( == )
     }
 
-    public static func < (lhs: [Element], rhs: [Element]) -> Bool {
+    public static func < (lhs: [Semantic.Identifier], rhs: [Semantic.Identifier]) -> Bool {
 
-        let lefts = lhs.map(\.value).joined(separator: ".")
-        let rights = rhs.map(\.value).joined(separator: ".")
+        // [] < []
+        if lhs.isEmpty && rhs.isEmpty { return false }
 
-        return lefts.compare(rights, options: .numeric) == .orderedAscending
+        // [] < [...]
+        if lhs.isEmpty && rhs.isEmpty == false { return true }
+
+        // [...] < []
+        if lhs.isEmpty == false && rhs.isEmpty { return false }
+
+        // we have elements so we can drop them
+        let l = lhs.first!
+        let r = rhs.first!
+
+        // elements are the same so check rest of the identifiers
+        return l == r
+            ? Array(lhs[1...]) < Array(rhs[1...])
+            : l < r
     }
 
 }
