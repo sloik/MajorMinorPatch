@@ -5,12 +5,123 @@ final class SemanticIdentifierComparableTests: XCTestCase {
 
     // use this test to focus on one case and if green then move it to snapshot.
     func test_wip() {
-        XCTAssertTrue(
-            Semantic.Identifier(string: "a-a-a")! < Semantic.Identifier(string: "-")!
-        )
+
     }
 
+    /// Examples of true cases for collections
+    func test_snapshot_collections() {
+        XCTAssertLessThan(
+            [
+                Semantic.Identifier(string: "a")!,
+                Semantic.Identifier(string: "a")!,
+                Semantic.Identifier(string: "a")!,
+                Semantic.Identifier(string: "a")!,
+            ],
+            [
+                Semantic.Identifier(string: "a")!,
+                Semantic.Identifier(string: "a")!,
+                Semantic.Identifier(string: "a")!,
+                Semantic.Identifier(string: "b")!,
+            ]
+        )
+        
+        XCTAssertLessThan(
+            [
+                Semantic.Identifier(string: "a")!,
+                Semantic.Identifier(string: "a")!,
+                Semantic.Identifier(string: "a")!,
+                Semantic.Identifier(string: "A")!,
+            ],
+            [
+                Semantic.Identifier(string: "a")!,
+                Semantic.Identifier(string: "a")!,
+                Semantic.Identifier(string: "a")!,
+                Semantic.Identifier(string: "a")!,
+            ]
+        )
 
+        XCTAssertLessThan(
+            [
+                Semantic.Identifier(string: "a")!,
+                Semantic.Identifier(string: "a")!,
+                Semantic.Identifier(string: "a")!,
+                Semantic.Identifier(string: "a")!,
+            ],
+            [
+                Semantic.Identifier(string: "b")!,
+                Semantic.Identifier(string: "a")!,
+                Semantic.Identifier(string: "a")!,
+                Semantic.Identifier(string: "a")!,
+                Semantic.Identifier(string: "a")!,
+            ]
+        )
+
+        XCTAssertLessThan(
+            [
+                Semantic.Identifier(string: "a")!,
+                Semantic.Identifier(string: "a")!,
+                Semantic.Identifier(string: "a")!,
+                Semantic.Identifier(string: "a")!,
+            ],
+            [
+                Semantic.Identifier(string: "a")!,
+                Semantic.Identifier(string: "a")!,
+                Semantic.Identifier(string: "a")!,
+                Semantic.Identifier(string: "a")!,
+                Semantic.Identifier(string: "a")!,
+            ]
+        )
+
+        XCTAssertFalse(
+            Array<Semantic.Identifier>() < Array<Semantic.Identifier>()
+        )
+
+        XCTAssertGreaterThan(
+            [
+                Semantic.Identifier(string: "a")!,
+            ],
+            []
+        )
+
+        XCTAssertLessThan(
+            [
+                Semantic.Identifier(string: "a")!,
+            ],
+            [
+                Semantic.Identifier(string: "a")!,
+                Semantic.Identifier(string: "1")!,
+            ]
+        )
+
+        XCTAssertLessThan(
+            [
+                Semantic.Identifier(string: "1")!,
+            ],
+            [
+                Semantic.Identifier(string: "a")!,
+            ]
+        )
+
+        XCTAssertLessThan(
+            [
+                Semantic.Identifier(string: "a")!,
+            ],
+            [
+                Semantic.Identifier(string: "a")!,
+                .init(string: "a")!
+            ]
+        )
+
+        XCTAssertLessThan(
+            [Semantic.Identifier(string: "a")!],
+            [Semantic.Identifier(string: "b")!]
+        )
+
+        XCTAssertLessThan(
+            [],
+            [Semantic.Identifier(string: "a")!]
+        )
+    }
 
     /// Examples of true cases.
     func test_snapshot() {
