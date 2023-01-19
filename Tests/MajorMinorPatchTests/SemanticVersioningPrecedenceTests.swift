@@ -94,6 +94,15 @@ final class SemanticVersioningSpecificationTests: XCTestCase {
         XCTAssert( ver_1_0_0_alpha < ver_1_0_0_alpha_beta )
     }
 
+    func test_whenAllOfThePrecedingIdentifiersAreEqual_thenLargerSetOfPreReleaseFieldsHasHigherPrecedenceThanSmallerSet() {
+        XCTAssertTrue(Semantic("1.0.0-alpha")!        < Semantic("1.0.0-alpha.extra")!      )
+        XCTAssertTrue(Semantic("1.0.0-alpha.1")!      < Semantic("1.0.0-alpha.1.extra")!    )
+        XCTAssertTrue(Semantic("1.0.0-alpha.beta")!   < Semantic("1.0.0-alpha.beta.extra")! )
+        XCTAssertTrue(Semantic("1.0.0-beta")!         < Semantic("1.0.0-beta.alpha")!       )
+        XCTAssertTrue(Semantic("1.0.0-beta.2")!       < Semantic("1.0.0-beta.2.1")!         )
+        XCTAssertTrue(Semantic("1.0.0-beta.11")!      < Semantic("1.0.0-beta.11.1")!        )
+    }
+
     /// 1.0.0-alpha < 1.0.0-alpha.1 < 1.0.0-alpha.beta < 1.0.0-beta < 1.0.0-beta.2 < 1.0.0-beta.11 < 1.0.0-rc.1 < 1.0.0.
     func test_vi_vi_comparison2() {
         XCTAssertTrue(Semantic("1.0.0-alpha")!        < Semantic("1.0.0-alpha.1")!      )
@@ -154,9 +163,14 @@ final class SemanticVersioningSpecificationTests: XCTestCase {
     /// precedence than a normal version:
     /// Example: 1.0.0-alpha < 1.0.0.
     func test_precedense_11_3() {
-        XCTAssertTrue(
-            Semantic("1.0.0-alpha")! < Semantic("1.0.0")!
-        )
+        XCTAssertTrue(Semantic("1.0.0-alpha")!        < Semantic("1.0.0")! )
+        XCTAssertTrue(Semantic("1.0.0-alpha")!        < Semantic("1.0.0")! )
+        XCTAssertTrue(Semantic("1.0.0-alpha.1")!      < Semantic("1.0.0")! )
+        XCTAssertTrue(Semantic("1.0.0-alpha.1")!      < Semantic("1.0.0")! )
+        XCTAssertTrue(Semantic("1.0.0-alpha.beta")!   < Semantic("1.0.0")! )
+        XCTAssertTrue(Semantic("1.0.0-beta")!         < Semantic("1.0.0")! )
+        XCTAssertTrue(Semantic("1.0.0-beta.2")!       < Semantic("1.0.0")! )
+        XCTAssertTrue(Semantic("1.0.0-beta.11")!      < Semantic("1.0.0")! )
     }
 
     /// https://semver.org/#spec-item-10
