@@ -5,31 +5,32 @@ import Parsing
 extension Semantic.Major {
 
     static var parser: AnyParser<Substring, Semantic.Major> {
-        Parse( Semantic.Major.init(integerLiteral:) ) {
-            UInt.parser(of: Substring.self, radix: 10)
-        }
-        .eraseToAnyParser()
+        numericComponentParser.map( Semantic.Major.init(integerLiteral:) ).eraseToAnyParser()
     }
 }
 
 extension Semantic.Minor {
 
     static var parser: AnyParser<Substring, Semantic.Minor> {
-        Parse( Semantic.Minor.init(integerLiteral:) ) {
-            UInt.parser(of: Substring.self, radix: 10)
-        }
-        .eraseToAnyParser()
+        numericComponentParser.map( Semantic.Minor.init(integerLiteral:) ).eraseToAnyParser()
     }
 }
 
 extension Semantic.Patch {
 
     static var parser: AnyParser<Substring, Semantic.Patch> {
-        Parse( Semantic.Patch.init(integerLiteral:) ) {
-            UInt.parser(of: Substring.self, radix: 10)
+        numericComponentParser.map( Semantic.Patch.init(integerLiteral:) ).eraseToAnyParser()
+    }
+}
+
+/// https://semver.org/#spec-item-2: a non-negative integer that MUST NOT contain leading zeroes.
+var numericComponentParser: AnyParser<Substring, UInt> {
+    Prefix(1...) { $0.isASCII && $0.isNumber }
+        .compactMap { (digits: Substring) -> UInt? in
+            if digits.count > 1 && digits.first == "0" { return nil }
+            return UInt(digits)
         }
         .eraseToAnyParser()
-    }
 }
 
 extension Semantic.Version {
@@ -69,7 +70,8 @@ extension Semantic.Identifier {
 }
 
 var arrayOfIdentifiersParser: AnyParser<Substring, [Semantic.Identifier]> {
-    Many {
+    // https://semver.org/#spec-item-9: a pre-release is one or more identifiers.
+    Many(1...) {
         Semantic.Identifier.parser
     } separator: {
         "."
@@ -98,7 +100,8 @@ extension Semantic.Metadata {
 }
 
 var arrayOfMetdataParser: AnyParser<Substring, [Semantic.Metadata]> {
-    Many {
+    // https://semver.org/#spec-item-10: build metadata is one or more identifiers.
+    Many(1...) {
         Semantic.Metadata.parser
     } separator: {
         "."
