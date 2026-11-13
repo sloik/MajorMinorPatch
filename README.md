@@ -11,6 +11,16 @@ Implementation of https://semver.org in Swift.
 
 **2.0.0**
 
+## Installing
+
+```swift
+.package(url: "https://github.com/sloik/MajorMinorPatch.git", from: "1.0.0")
+```
+
+> **1.0.0 is a breaking release.** Ordering, equality and parsing now follow semver.org exactly,
+> so results differ from 0.0.5 (e.g. `2.0.0 < 1.5.0` is no longer `true`, and `01.0.0` no longer
+> parses). See [CHANGELOG.md](CHANGELOG.md) for every changed result and how to migrate.
+
 ---
 
 # 🐇🕳 Rabbit Hole
