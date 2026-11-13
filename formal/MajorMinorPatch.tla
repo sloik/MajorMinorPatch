@@ -7,10 +7,10 @@
 (* Abstractions: UInt components are 0..MaxC (MaxC stands for UInt.max); in the *)
 (* text model every number is ONE token ("0", "1", "01"); identifiers and build *)
 (* identifiers are atomic tokens; the NSString .numeric compare is modelled by  *)
-(* CodeRank, semver.org's rule by RefIdLess/AsciiRank.                          *)
-(* The model follows the CODE, not semver: laws the code violates are NOT in    *)
-(* MajorMinorPatch.cfg; each has a MajorMinorPatch.finding_*.cfg that pins the  *)
-(* violation (EXPECT_VIOLATION on the unmutated model). See README "Findings".  *)
+(* NumericRank (legacy mutant); semver.org by RefIdLess/AsciiRank.                        *)
+(* The model follows the CODE, which since the 2026-11-13 fix follows semver.org *)
+(* 2.0.0. The seven violations the model found earlier are now `legacy_*`      *)
+(* mutants: each re-introduces one old bug and must be caught (see README).    *)
 EXTENDS Naturals, Sequences, FiniteSets
 
 CONSTANTS VMax,     \* AllVers = (0..VMax)^3, for Version-level laws
@@ -41,9 +41,12 @@ Dec(x) == IF x = 0 THEN x ELSE x - 1
 
 (* ---------------- Version.< (Semantic.Version.swift) ---------------- *)
 AllVers == {<<a, b, c>> : a, b, c \in 0..VMax}
-VLess(a, b) == a[1] < b[1] \/ a[2] < b[2] \/ a[3] < b[3]     \* the code: any component less
 VLex(a, b)  == a[1] < b[1]
-               \/ (a[1] = b[1] /\ (a[2] < b[2] \/ (a[2] = b[2] /\ a[3] < b[3])))   \* semver 11.1
+               \/ (a[1] = b[1] /\ (a[2] < b[2] \/ (a[2] = b[2] /\ a[3] < b[3])))   \* semver 11.2
+\* the code: major, then minor, then patch
+VLess(a, b) == IF Mutant = "legacy_version_any_component"
+                 THEN a[1] < b[1] \/ a[2] < b[2] \/ a[3] < b[3]   \* pre-fix: any component less
+                 ELSE VLex(a, b)
 CompLE(a, b) == \A k \in 1..3 : a[k] <= b[k]
 Comparable(a, b) == CompLE(a, b) \/ CompLE(b, a)
 
@@ -54,20 +57,25 @@ NumVal  == [i \in {"2", "10"} |-> IF i = "2" THEN 2 ELSE 10]
 \* semver 11.1.2: alphanumerics compare lexically in ASCII order (a10 < a2).
 AsciiRank == [i \in {"a2", "a10", "alpha", "beta"} |->
                 IF i = "a10" THEN 1 ELSE IF i = "a2" THEN 2 ELSE IF i = "alpha" THEN 3 ELSE 4]
-\* Foundation compare(_, options: .numeric): digit runs compare as numbers (a2 < a10).
-CodeRank == [i \in AllIds |->
+\* pre-fix code: Foundation compare(_, options: .numeric), digit runs as numbers (a2 < a10).
+NumericRank == [i \in AllIds |->
   IF i = "2" THEN 1 ELSE IF i = "10" THEN 2 ELSE IF i = "a2" THEN 3
   ELSE IF i = "a10" THEN 4 ELSE IF i = "alpha" THEN 5 ELSE 6]
 LexRank == [i \in AllIds |->     \* plain string order (seeded bug)
   IF i = "10" THEN 1 ELSE IF i = "2" THEN 2 ELSE IF i = "a10" THEN 3
   ELSE IF i = "a2" THEN 4 ELSE IF i = "alpha" THEN 5 ELSE 6]
-IdLess(i, j) == IF Mutant = "ids_lexical" THEN LexRank[i] < LexRank[j]
-                ELSE CodeRank[i] < CodeRank[j]
 RefIdLess(i, j) ==
   IF IsNum(i) /\ IsNum(j) THEN NumVal[i] < NumVal[j]
   ELSE IF IsNum(i) THEN TRUE
   ELSE IF IsNum(j) THEN FALSE
   ELSE AsciiRank[i] < AsciiRank[j]
+\* the code (Semantic.Identifier.<): the same rule, written as numeric/alphanumeric cases
+IdLess(i, j) == IF Mutant = "ids_lexical" THEN LexRank[i] < LexRank[j]
+                ELSE IF Mutant = "legacy_numeric_id_compare" THEN NumericRank[i] < NumericRank[j]
+                ELSE CASE IsNum(i) /\ IsNum(j) -> NumVal[i] < NumVal[j]
+                       [] IsNum(i) /\ ~IsNum(j) -> TRUE
+                       [] ~IsNum(i) /\ IsNum(j) -> FALSE
+                       [] OTHER -> AsciiRank[i] < AsciiRank[j]
 
 \* ArraySemantic.Identifier.swift  [Identifier] <
 IdsLess(l, r) ==
@@ -99,29 +107,39 @@ VIOnly  == OfKind("vi")
 VIBOnly == OfKind("vib")
 Strip(a) == Mk("vi", a.ver, a.ids, <<>>)
 
-Eq(a, b) ==
+\* Semantic.Comparable.swift: pre-release identifiers, or <<>> for a release.
+PreRel(a) == IF a.kind \in {"vi", "vib"} THEN a.ids ELSE <<>>
+
+\* pre-fix == table (asymmetric for v/vb), kept as the legacy_eq_asymmetric mutant
+OldEq(a, b) ==
   LET sv == a.ver = b.ver
       si == a.ver = b.ver /\ a.ids = b.ids
   IN  IF a.kind = "v"   /\ b.kind = "v"   THEN sv
       ELSE IF a.kind = "vi"  /\ b.kind = "vi"  THEN si
       ELSE IF a.kind = "vb"  /\ b.kind = "vb"  THEN sv
-      ELSE IF a.kind = "vib" /\ b.kind = "vib" THEN
-             si /\ (Mutant = "build_in_equality" => a.build = b.build)
+      ELSE IF a.kind = "vib" /\ b.kind = "vib" THEN si
       ELSE IF a.kind = "vb"  /\ b.kind = "v"   THEN sv
       ELSE IF a.kind = "vib" /\ b.kind = "vi"  THEN si
       ELSE IF a.kind = "vi"  /\ b.kind = "vib" THEN si
       ELSE FALSE
 
-LessVI(a, b) ==
-  IF a.ver = b.ver THEN IdsLess(a.ids, b.ids) ELSE VLess(a.ver, b.ver)
+\* == is "same precedence": version and pre-release equal, build metadata ignored.
+Eq(a, b) ==
+  IF Mutant = "legacy_eq_asymmetric" THEN OldEq(a, b)
+  ELSE /\ a.ver = b.ver /\ PreRel(a) = PreRel(b)
+       /\ (Mutant = "build_in_equality" => a.build = b.build)
 
 Less(a, b) ==
-  IF a.kind = "v" /\ b.kind = "v"  THEN VLess(a.ver, b.ver)
-  ELSE IF a.kind = "v"  /\ b.kind = "vi" THEN VLess(a.ver, b.ver)
-  ELSE IF a.kind = "vi" /\ b.kind = "v"  THEN Mutant # "prerelease_above_release"
-  ELSE IF a.kind = "vi" /\ b.kind = "vi" THEN LessVI(a, b)
-  ELSE IF a.kind = "vib" /\ b.kind = "vib" THEN LessVI(Strip(a), Strip(b))
-  ELSE FALSE
+  IF Mutant = "legacy_build_kinds_unordered"
+     /\ (a.kind = "vb" \/ b.kind = "vb" \/ ((a.kind = "vib") # (b.kind = "vib")))
+    THEN FALSE                                     \* pre-fix: unhandled pairs were FALSE
+  ELSE IF Mutant = "legacy_prerelease_below_all" /\ PreRel(a) # <<>> /\ PreRel(b) = <<>>
+    THEN TRUE                                      \* pre-fix: .vi < .v was always TRUE
+  ELSE IF a.ver # b.ver THEN VLess(a.ver, b.ver)
+  ELSE IF PreRel(a) = <<>> /\ PreRel(b) = <<>> THEN FALSE
+  ELSE IF PreRel(b) = <<>> THEN Mutant # "prerelease_above_release"
+  ELSE IF PreRel(a) = <<>> THEN Mutant = "prerelease_above_release"
+  ELSE IdsLess(PreRel(a), PreRel(b))
 
 \* semver.org precedence (build metadata ignored; no pre-release > pre-release)
 RefLess(a, b) ==
@@ -157,9 +175,13 @@ FirstPlus(r) == IF \E k \in 1..Len(r) : r[k] = "+"
                 ELSE 0
 
 \* Parsing.swift: OneOf { vib, vb, vi, v } and the parse must consume everything.
+\* Parsing.swift: no leading zeros in major/minor/patch, and pre-release / build
+\* lists need at least one item (Many(1...)).
+CompOK(t) == t \in DigitToks /\ (t = "01" => Mutant = "legacy_leading_zero_component")
+NonEmptyOK(l) == l # <<>> \/ Mutant = "legacy_empty_ids"
 Parse(s) ==
-  IF ~(Len(s) >= 5 /\ s[1] \in DigitToks /\ s[2] = "." /\ s[3] \in DigitToks
-       /\ s[4] = "." /\ s[5] \in DigitToks) THEN FAIL
+  IF ~(Len(s) >= 5 /\ CompOK(s[1]) /\ s[2] = "." /\ CompOK(s[3])
+       /\ s[4] = "." /\ CompOK(s[5])) THEN FAIL
   ELSE LET x == <<DV(s[1]), DV(s[3]), DV(s[5])>>
            r == SubSeq(s, 6, Len(s))
        IN IF r = <<>> THEN Mk("v", x, <<>>, <<>>)
@@ -167,19 +189,23 @@ Parse(s) ==
             LET body == Tail(r)
                 p == FirstPlus(body)
             IN IF p = 0 THEN
-                 (IF ListOK(body, IdValid) THEN Mk("vi", x, Items(body), <<>>) ELSE FAIL)
+                 (IF ListOK(body, IdValid) /\ NonEmptyOK(body)
+                  THEN Mk("vi", x, Items(body), <<>>) ELSE FAIL)
                ELSE
                  LET il == SubSeq(body, 1, p - 1)
                      bl == SubSeq(body, p + 1, Len(body))
                  IN IF ListOK(il, IdValid) /\ ListOK(bl, BuildValid)
+                       /\ NonEmptyOK(il) /\ NonEmptyOK(bl)
                     THEN Mk("vib", x, Items(il), Items(bl)) ELSE FAIL
           ELSE IF r[1] = "+" THEN
             LET bl == Tail(r)
-            IN IF ListOK(bl, BuildValid) THEN Mk("vb", x, <<>>, Items(bl)) ELSE FAIL
+            IN IF ListOK(bl, BuildValid) /\ NonEmptyOK(bl)
+               THEN Mk("vb", x, <<>>, Items(bl)) ELSE FAIL
           ELSE FAIL
 
 PVers      == {<<a, b, c>> : a, b, c \in 0..1}
-PrintSems  == SemSet(PVers, Seqs({"1", "alpha"}, 2), Seqs({"b", "01"}, 2))
+\* values the parser can produce (non-empty lists); see README for hand-built .vi(ids: [])
+PrintSems  == SemSet(PVers, NESeqs({"1", "alpha"}, 2), NESeqs({"b", "01"}, 2))
 CandVers   == {<<a, ".", b, ".", c>> : a, b, c \in DigitToks}
 IdLists    == Seqs({"1", "alpha", "01"}, 2)
 BuildLists == Seqs({"b", "01"}, 2)
@@ -198,7 +224,7 @@ Malformed == {
   <<"1", ".", "0", ".", "0", "+", "b", "+", "b">>,
   <<"1", ".", "0", ".", "0", "-", "alpha", "+", "b", "+", "b">>}
 
-(* ================= invariants that hold for the code ================= *)
+(* ================= invariants (all hold for the fixed code) ================= *)
 TypeOK == u = 0 /\ OrdSems # {} /\ Cands # {}
 
 \* --- components
@@ -258,7 +284,7 @@ LeadingZeroIdRejected == u = 0 =>
       /\ \A b \in BuildLists : Parse(v \o <<"-">> \o JoinDots(i) \o <<"+">> \o JoinDots(b)) = FAIL
 MalformedRejected == u = 0 => \A m \in Malformed : Parse(m) = FAIL
 
-(* ================= findings: laws the CODE violates (see README) ================= *)
+(* ----- laws the pre-fix code violated (now in MajorMinorPatch.cfg) ----- *)
 VersionLessAsymmetric == u = 0 => \A a, b \in AllVers : VLess(a, b) => ~VLess(b, a)
 EqSymmetric == u = 0 => \A a, b \in OrdSems : Eq(a, b) => Eq(b, a)
 PlainLessAsymmetric == u = 0 =>
@@ -268,4 +294,12 @@ PrintParseLossless == u = 0 => \A s \in Cands : Parse(s) # FAIL => Print(Parse(s
 ParseYieldsNonEmptyIds == u = 0 =>
   \A s \in Cands :
     (Parse(s) # FAIL /\ Parse(s).kind \in {"vi", "vib"}) => Parse(s).ids # <<>>
+ParseYieldsNonEmptyBuild == u = 0 =>
+  \A s \in Cands :
+    (Parse(s) # FAIL /\ Parse(s).kind \in {"vb", "vib"}) => Parse(s).build # <<>>
+LeadingZeroComponentRejected == u = 0 =>
+  \A s \in Cands : (s[1] = "01" \/ s[3] = "01" \/ s[5] = "01") => Parse(s) = FAIL
+VersionLessIsLex == u = 0 => \A a, b \in AllVers : VLess(a, b) <=> VLex(a, b)
+\* precedence is a strict weak order over every case combination
+AllKindsStrictWeakOrder == u = 0 => StrictTotal(OrdSems)
 =============================================================================

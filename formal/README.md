@@ -3,29 +3,30 @@
 `MajorMinorPatch.tla` is a finite TLA+ model of the public semantics of `Semantic`
 (`Major` / `Minor` / `Patch` / `Version` / `Identifier` / `Metadata`) as written in
 `Sources/MajorMinorPatch`. TLC checks each law exhaustively over a small abstract domain.
-The model follows **what the code does**; where the code breaks a semver law, the law is
-*not* in `MajorMinorPatch.cfg` but pinned by a `finding_*` cfg (see Findings).
+The model follows **what the code does**. Since the 2026-11-13 fix the code follows semver.org
+2.0.0, and every law, including the seven the old code broke, is in `MajorMinorPatch.cfg`.
 
 Abstractions: `UInt` components are `0..MaxC` (`MaxC` stands for `UInt.max`); in the text model
-each number, identifier and build identifier is one atomic token; the Foundation
-`compare(_, options: .numeric)` used for identifiers is modelled by an explicit rank
-(`CodeRank`, derived from probing the real code), semver.org's rule by `RefIdLess`.
+each number, identifier and build identifier is one atomic token; identifier order is written twice: as the code's numeric/alphanumeric cases (`IdLess`) and
+independently from semver.org (`RefIdLess`), and the two must agree.
 There is a single dummy state (`u = 0`); every law is a closed quantified formula over the
 finite domains (`Init` has one state, `Next == UNCHANGED u`).
 
 | Invariant | Swift API it abstracts |
 |---|---|
 | `IncNeverDecreases`, `IncSaturatesAtMax`, `DecSaturatesAtZero`, `IncIsSuccessor`, `DecIsPredecessor`, `IncDecInverse` | `Major/Minor/Patch.incremented` / `.decremented` (saturating, never trap) |
-| `VersionIrreflexive`, `VersionLessCoversLex`, `VersionLessSoundOnChains` | `Semantic.Version.<` (correct only when components are comparable, see Findings) |
-| `IdOrderMatchesSemver` | `Semantic.Identifier.<` (numeric < alphanumeric, numeric by value) |
+| `VersionIrreflexive`, `VersionLessCoversLex`, `VersionLessSoundOnChains`, `VersionLessIsLex`, `VersionLessAsymmetric` | `Semantic.Version.<`: major, then minor, then patch |
+| `IdOrderMatchesSemver` | `Semantic.Identifier.<`: numeric by value, numeric < alphanumeric, alphanumeric in ASCII order (`a10 < a2`) |
 | `VOnlyIsStrictTotal`, `VIOnlyIsStrictTotal` | `Semantic.<` / `==` on `.v` and on `.vi`: strict total order, `==` an equivalence |
 | `VIOrderMatchesSemver` | `.vi` / `.v` precedence equals semver.org item 11 (written independently as `RefLess`) |
 | `SameVersionPrereleaseBelowRelease` | `1.0.0-alpha < 1.0.0` |
 | `BuildMetadataIgnored`, `VIBOrdersLikeVI` | `.vib` pairs ignore build metadata in `==` and `<` |
-| `EqReflexiveAllKinds`, `EqSymmetricExceptVvb` | `Semantic.==` |
-| `ParsePrintRoundTrip` | `Semantic(description)` after `description`, over every `.v/.vi/.vb/.vib` (incl. empty arrays) |
-| `PrintParseOnCanonical` | `description` after parsing a canonical string returns it |
-| `LeadingZeroIdRejected`, `MalformedRejected` | `Semantic.parser` rejects `1.0.0-01`, trailing dots, `a+b` builds, junk |
+| `EqReflexiveAllKinds`, `EqSymmetricExceptVvb`, `EqSymmetric` | `Semantic.==` means same precedence (build ignored), symmetric |
+| `PlainLessAsymmetric`, `LessMatchesSemverAllKinds`, `AllKindsStrictWeakOrder` | `Semantic.<` over every pair of `.v/.vi/.vb/.vib` equals semver.org item 11 and is a strict weak order (`MajorMinorPatch.total.cfg`) |
+| `ParsePrintRoundTrip` | `Semantic(description)` after `description`, over every parseable `.v/.vi/.vb/.vib` |
+| `PrintParseOnCanonical`, `PrintParseLossless` | `description` after parsing any accepted string returns it unchanged |
+| `LeadingZeroIdRejected`, `LeadingZeroComponentRejected`, `MalformedRejected` | `Semantic.parser` rejects `1.0.0-01`, `01.0.0`, trailing dots, `a+b` builds, junk |
+| `ParseYieldsNonEmptyIds`, `ParseYieldsNonEmptyBuild` | `1.0.0-` and `1.0.0+` are rejected |
 
 ## Non-vacuity
 
@@ -35,27 +36,25 @@ Seeded bugs (`MajorMinorPatch.<mutant>.cfg`, first line `\* EXPECT_VIOLATION: <I
 `build_in_equality` -> `BuildMetadataIgnored`; `accept_leading_zero_id` -> `LeadingZeroIdRejected`;
 `print_swaps_minor_patch` -> `ParsePrintRoundTrip`. `run_tlc.sh` fails if a mutant passes.
 
-## Findings (laws the Swift code does NOT satisfy)
+## Fixed findings (2026-11-13)
 
-Each is confirmed against the real code (throwaway XCTest probe, not committed) and pinned by a
-`MajorMinorPatch.finding_*.cfg` that runs the *unmutated* model and expects the violation. If the
-Swift is fixed, the matching cfg goes red: move the invariant into `MajorMinorPatch.cfg`.
+The first version of this model found seven semver.org violations in the code. All seven are
+fixed in `Sources/` and covered by `Tests/MajorMinorPatchTests/SemverRegressionTests.swift`
+(each test fails on the old code). Each old bug survives as a `legacy_*` mutant that re-introduces
+it and must be caught, so the law that found it can still go red:
 
-1. `finding_version_not_antisymmetric` - `Version.<` is `major< || minor< || patch<` (not
-   lexicographic): `2.0.0 < 1.5.0` and `1.5.0 < 2.0.0` are both true. Violates `VersionLessAsymmetric`.
-2. `finding_prerelease_cross_version` - `.vi < .v` is unconditionally `true`: `2.0.0-alpha < 1.0.0`
-   and `1.0.0 < 2.0.0-alpha` are both true. Violates `PlainLessAsymmetric`.
-3. `finding_build_and_mixed_kinds_unordered` - `<` only handles `v/v`, `v/vi`, `vi/v`, `vi/vi`,
-   `vib/vib`; everything else is `false`: `1.0.0+a < 2.0.0+a` is false both ways, `1.0.0-alpha+x < 1.0.0-beta`
-   is false. Violates `LessMatchesSemverAllKinds`.
-4. `finding_eq_asymmetric_v_vb` - `.vb == .v` is version equality but `.v == .vb` is `false`.
-   Violates `EqSymmetric`.
-5. `finding_alnum_digit_runs` - identifier compare uses `.numeric`, so `a2 < a10`; semver (ASCII)
-   says `a10 < a2`. Violates `IdOrderMatchesSemver` once such identifiers exist.
-6. `finding_leading_zero_normalised` - `Semantic("01.0.0")` parses (leading zeros accepted in
-   major/minor/patch, forbidden by semver 2) and prints `1.0.0`. Violates `PrintParseLossless`.
-7. `finding_empty_id_array_parses` - `Semantic("1.0.0-")` parses to `.vi` with `ids == []`; then
-   `==` / `<` trap on `identifiers!` (observed: Fatal error, signal 5). Violates `ParseYieldsNonEmptyIds`.
+| Old behaviour | Fix | Mutant -> invariant |
+|---|---|---|
+| `Version.<` was `major< \|\| minor< \|\| patch<`, so `2.0.0 < 1.5.0` | lexicographic | `legacy_version_any_component` -> `VersionLessAsymmetric` |
+| `.vi < .v` always true, so `2.0.0-alpha < 1.0.0` | versions first, then pre-release | `legacy_prerelease_below_all` -> `PlainLessAsymmetric` |
+| `<` false for every `.vb` and mixed build pair | one rule for all cases, build ignored | `legacy_build_kinds_unordered` -> `LessMatchesSemverAllKinds` |
+| `.vb == .v` true but `.v == .vb` false | `==` compares version and pre-release | `legacy_eq_asymmetric` -> `EqSymmetric` |
+| identifiers used Foundation `.numeric`, so `a2 < a10` | semver item 11.4 (ASCII, `a10 < a2`) | `legacy_numeric_id_compare` -> `IdOrderMatchesSemver` |
+| `01.0.0` parsed and printed `1.0.0` | leading zeros rejected | `legacy_leading_zero_component` -> `PrintParseLossless` |
+| `1.0.0-` parsed with empty ids, then `==` trapped | pre-release and build need >= 1 item | `legacy_empty_ids` -> `ParseYieldsNonEmptyIds` |
+
+A hand-built `.vi(ver:ids: [])` (not produced by the parser) is treated as a release in `==`/`<`
+and no longer traps, but its `description` (`"1.0.0-"`) does not parse back.
 
 Not modelled because it does not exist: there is **no `Version`-level bump API** (no
 `bumpMajor` that resets minor/patch). Only per-component `incremented`/`decremented` exist, so
@@ -74,8 +73,8 @@ self-hosted Oracle ARM64 runner, only on pushes to the default branch or by manu
 
 ## Limits
 
-The model describes the code as read by hand and probed once; it does not prove the Swift
-conforms. Identifier ordering depends on Foundation's `compare(_, options: .numeric)`, which is
-abstracted to a rank table derived on macOS; swift-corelibs-foundation on Linux may differ.
+The model describes the code as read by hand; it does not prove the Swift conforms (the XCTest
+suite covers the code). Identifier ordering no longer depends on Foundation, so it is the same
+on macOS and Linux.
 Strings are abstracted to tokens (ids containing `-`, Unicode, overflow of `UInt` are out of
 scope). If the Swift behaviour changes, update the model in the same PR.

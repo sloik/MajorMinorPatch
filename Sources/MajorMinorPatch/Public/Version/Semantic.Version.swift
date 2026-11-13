@@ -26,10 +26,9 @@ extension Semantic.Version: Comparable {
 
     public static func < (lhs: Semantic.Version, rhs: Semantic.Version) -> Bool {
 
-        if lhs.major < rhs.major  { return true }
-        if lhs.minor < rhs.minor  { return true }
-        if lhs.patch < rhs.patch  { return true }
-
-        return false
+        // https://semver.org/#spec-item-11 (2): major, then minor, then patch, numerically.
+        if lhs.major != rhs.major { return lhs.major < rhs.major }
+        if lhs.minor != rhs.minor { return lhs.minor < rhs.minor }
+        return lhs.patch < rhs.patch
     }
 }
